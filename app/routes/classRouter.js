@@ -1,6 +1,6 @@
-import { Router } from "express";
-import pgClient from "../db/db.js";
-import ApiError from "../utils/apiError.js";
+const { Router } = require("express");
+const pgClient = require("../db/db.js");
+const ApiError = require("../utils/apiError.js");
 
 const classRouter = new Router();
 
@@ -20,4 +20,4 @@ classRouter.post('/', async (req, res, next) => {
   }
 })
 
-export default classRouter;
+module.exports = classRouter;

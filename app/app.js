@@ -1,8 +1,8 @@
-import express from "express";
-import dotenv from "dotenv";
-import rootRouter from "./routes/rootRouter.js";
-import errorMiddleware from "./middleware/errorMiddleware.js";
-import pgClient from "./db/db.js";
+const express = require("express");
+const dotenv = require("dotenv");
+const rootRouter = require("./routes/rootRouter.js");
+const errorMiddleware = require("./middleware/errorMiddleware.js");
+const pgClient = require("./db/db.js");
 dotenv.config();
 
 const start = async () => {

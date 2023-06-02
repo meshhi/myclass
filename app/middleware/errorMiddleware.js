@@ -1,4 +1,4 @@
-export default async (err, req, res, next) => {
+module.exports = async (err, req, res, next) => {
   if (err) {
     console.log(err.message)
   }

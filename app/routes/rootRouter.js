@@ -1,8 +1,8 @@
-import { Router } from "express";
-import classRouter from "./classRouter.js";
+const { Router } = require("express");
+const classRouter = require("./classRouter.js");
 
 const rootRouter = new Router();
 
 rootRouter.use('/class', classRouter);
 
-export default rootRouter;
+module.exports = rootRouter;
