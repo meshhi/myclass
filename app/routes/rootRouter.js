@@ -1,8 +1,24 @@
 const { Router } = require("express");
-const classRouter = require("./classRouter.js");
+const lessonsRouter = require("./lessonsRouter.js");
+const router = new Router();
 
-const rootRouter = new Router();
+/**
+ * @openapi
+ * tags:
+ *   - name: 'Lessons'
+ *     description: Lessons
+ */
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     ApiError:
+ *       type: object
+ *       properties:
+ *         response: 
+ *           type: string
+ *           description: Custom api error text
+ */
+router.use('/', lessonsRouter);
 
-rootRouter.use('/class', classRouter);
-
-module.exports = rootRouter;
+module.exports = router;

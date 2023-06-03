@@ -5,7 +5,7 @@ const recreateDB = async() => {
   return await new Promise((resolve, reject) => {
     try {
       const s = new Readable();
-      s._read = () => {}; // redundant? see update below
+      s._read = () => {};
       s.push("DROP DATABASE IF EXISTS myclass; CREATE DATABASE myclass;");
       s.push(null);
       const psql = spawn('psql', ['postgresql://postgres:postgres@127.0.0.1:3998/']);
@@ -27,9 +27,7 @@ const recreateDB = async() => {
       console.error(`stderr: ${err}`);
       reject(new Error('recreate db failed'));
     };
-  })
-
-  ;
+  });
 }
 
 const dumpDataToDB = async() => {
