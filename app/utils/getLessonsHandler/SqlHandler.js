@@ -1,4 +1,4 @@
-class RootHandler {
+class SqlHandler {
   dateToSQL(date) {
     let result = '';
     const regex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/g;
@@ -81,4 +81,4 @@ class RootHandler {
   }
 }
 
-module.exports = new RootHandler();
+module.exports = new SqlHandler();

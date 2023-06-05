@@ -1,11 +1,11 @@
-const rootHandler = require("./rootHandler.js");
-const sqlQueries = require("../sqlQueries.js");
+const SqlHandler = require("./SqlHandler.js");
+const sqlQueries = require("../sqlBaseQueries.js");
 
 module.exports = function(date, status, teacherIds, studentsCount, page, lessonsPerPage) {
-  const dateToSQL = rootHandler.dateToSQL(date);
-  const statusToSQL = rootHandler.statusToSQL(status);
-  const teacherIdsToSQL = rootHandler.teacherIdsToSQL(teacherIds);
-  const studentsCountToSQL = rootHandler.studentsCountToSQL(studentsCount);
+  const dateToSQL = SqlHandler.dateToSQL(date);
+  const statusToSQL = SqlHandler.statusToSQL(status);
+  const teacherIdsToSQL = SqlHandler.teacherIdsToSQL(teacherIds);
+  const studentsCountToSQL = SqlHandler.studentsCountToSQL(studentsCount);
   const offset = page * lessonsPerPage - lessonsPerPage;
   let filterString = '';
   const filterArray = [];

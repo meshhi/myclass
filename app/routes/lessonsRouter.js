@@ -30,21 +30,27 @@ const lessonsRouter = new Router();
  *      - in: query
  *        name: studentsCount
  *        schema:
- *           type: string
+ *           type: integer
  *        description: studentsCount.
  *      - in: query
  *        name: page
  *        schema:
- *           type: string
+ *           type: integer
  *        description: page.
  *      - in: query
  *        name: lessonsPerPage
  *        schema:
- *           type: string
+ *           type: integer
  *        description: lessonsPerPage.
  *    responses:
  *       200:
  *         description: Returns lesson list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Error
  *         content:
  *           application/json:
  *             schema:
@@ -93,14 +99,65 @@ lessonsRouter.get('/', async (req, res, next) => {
         })),
       }));
     }
-    console.log(dbResponse.rows);
-    res.json(response);
+    res.json(response.lessons);
   } catch(e) {
     next(new ApiError(400, e.message));
   }
 
 });
 
+/**
+ * @openapi
+ * /lessons:
+ *   post:
+ *    description: Create lessons.
+ *    tags: [Lessons]
+ *    parameters:
+ *      - in: body
+ *        name: teacherIds
+ *        schema:
+ *           type: array
+ *        description: teacherIds
+ *      - in: body
+ *        name: title
+ *        schema:
+ *           type: string
+ *        description: Lesson`s title
+ *      - in: body
+ *        name: days
+ *        schema:
+ *           type: array
+ *        description: Days
+ *      - in: body
+ *        name: firstDate
+ *        schema:
+ *           type: string
+ *        description: firstDate
+ *      - in: body
+ *        name: lessonsCount
+ *        schema:
+ *           type: integer
+ *        description: lessonsCount
+ *        example: 10
+ *      - in: body
+ *        name: lastDate
+ *        schema:
+ *           type: string
+ *        description: lastDate.
+ *    responses:
+ *       201:
+ *         description: Lessons successfully created.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ */
 lessonsRouter.post('/lessons', async (req, res, next) => {
   try {
     const {teacherIds, title, days, firstDate = new Date(), lessonsCount = 300, lastDate = new Date(Number(new Date()) + 86400000)} = req.body;
@@ -121,7 +178,6 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
     if (lessonsCount && firstDate) {
       lessonsCountCondition = true;
       let currentDate = new Date(firstDate);
-      console.log(Number(currentDate))
       let currentDay;
 
       while(counter < 300) {
@@ -130,7 +186,6 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
           break;
         }
         currentDay = currentDate.getDay();
-        console.log(currentDate.toUTCString())
         // создание занятия, если удовлетворяет условию по дням недели
         if (days.includes(currentDay)) {
           generatedLessons.push(currentDate.toDateString());
@@ -160,7 +215,6 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
           break;
         }
         currentDay = currentDate.getDay();
-        console.log(currentDate.toUTCString());
         // проверка условия по дням недели
         if (days.includes(currentDay)) {
           generatedLessons.push(currentDate.toDateString());
@@ -173,9 +227,6 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
         currentDate = new Date(Number(currentDate) + 86400000);
       }
     }
-
-    console.log(generatedLessons);
-
     counter = 0;
     let dbResponse;
     const createdLessonIds = [];
@@ -218,20 +269,10 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
       dbResponse = await pgClient.query(query);
       createdLessonIds.push(dbResponse.rows[0].lesson_id);
     }
-    
+
     return res.json(createdLessonIds);
-    // const response = {
-    //   text: dbResponse,
-    // }
-
-    response = {
-      generatedLessonsCount: generatedLessons.length,
-      generatedLessons,
-    };
-
-    res.json(response);
   } catch(err) {
-    next(err);
+    next(new ApiError(400, err.message));
   }
 })
 

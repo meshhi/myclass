@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start-dev": "nodemon ./app/app.js"
+    "start-dev": "nodemon ./app/app.js",
+    "dump-db": "node ./app/utils/dumpDB.js",
+    "start-pg-container": "sh initdb.sh",
+    "start": "node .app/app.js"
   },
   "keywords": [],
   "author": "",

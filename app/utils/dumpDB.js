@@ -11,7 +11,7 @@ const recreateDB = async() => {
       const psql = spawn('psql', ['postgresql://postgres:postgres@127.0.0.1:3998/']);
       s.pipe(psql.stdin);
       psql.stdout.on('data', (data) => {
-        // console.log(`stdout: ${data}`);
+        console.log(`stdout: ${data}`);
       });
       
       psql.stderr.on('data', (data) => {
@@ -25,6 +25,7 @@ const recreateDB = async() => {
       });
     } catch (err) {
       console.error(`stderr: ${err}`);
+      console.error('DB RECREATION FAILED! FIX ISSUES AND TRY AGAIN!');
       reject(new Error('recreate db failed'));
     };
   });
@@ -35,11 +36,11 @@ const dumpDataToDB = async() => {
     const recreateStatus = await recreateDB();
     console.log(recreateStatus);
     const psql = spawn('psql', ['postgresql://postgres:postgres@127.0.0.1:3998/myclass']);
-    const cat = spawn('cat',['../../test.sql']);
+    const cat = spawn('cat',['./test.sql']);
     cat.stdout.pipe(psql.stdin);
     
     psql.stdout.on('data', (data) => {
-      // console.log(`stdout: ${data}`);
+      console.log(`stdout: ${data}`);
     });
     
     psql.stderr.on('data', (data) => {
@@ -48,9 +49,10 @@ const dumpDataToDB = async() => {
     
     psql.on('close', (code) => {
       console.log(`child process exited with code ${code}`);
+      console.log('DB RECREATED!');
     }); 
   } catch (err) {
-    console.log('HERE ERR')
+    console.log('DB RECREATION FAILED! FIX ISSUES AND TRY AGAIN!');
   };
 };
 

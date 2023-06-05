@@ -1,5 +1,5 @@
-const rootHandler = require("../getLessonsHandler/rootHandler.js");
-const sqlQueries = require("../sqlQueries.js");
+const rootHandler = require("../getLessonsHandler/SqlHandler.js");
+const sqlQueries = require("../sqlBaseQueries.js");
 
 module.exports = function(date, status, teacherIds, studentsCount, page, lessonsPerPage) {
   const dateToSQL = rootHandler.dateToSQL(date);
