@@ -103,7 +103,16 @@ lessonsRouter.get('/', async (req, res, next) => {
 
 lessonsRouter.post('/lessons', async (req, res, next) => {
   try {
-    const {teacherIds, title, days, firstDate, lessonsCount, lastDate} = req.body;
+    const {teacherIds, title, days, firstDate = new Date(), lessonsCount = 300, lastDate = new Date(Number(new Date()) + 86400000)} = req.body;
+    if (!teacherIds) {
+      throw new ApiError(400, 'Missing required parameter teacherIds');
+    }
+    if (!title) {
+      throw new ApiError(400, 'Missing required parameter title');
+    }
+    if (!days) {
+      throw new ApiError(400, 'Missing required parameter days');
+    }
     let counter = 0;
     const generatedLessons = [];
     let lessonsCountCondition = false;
@@ -124,7 +133,7 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
         console.log(currentDate.toUTCString())
         // создание занятия, если удовлетворяет условию по дням недели
         if (days.includes(currentDay)) {
-          generatedLessons.push(currentDate.toUTCString());
+          generatedLessons.push(currentDate.toDateString());
           counter++;
         }
         // проверка условия по количеству создаваемых занятий
@@ -154,7 +163,7 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
         console.log(currentDate.toUTCString());
         // проверка условия по дням недели
         if (days.includes(currentDay)) {
-          generatedLessons.push(currentDate.toUTCString());
+          generatedLessons.push(currentDate.toDateString());
           counter++;
         }
         // проверка на количество созданных занятий
@@ -167,22 +176,50 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
 
     console.log(generatedLessons);
 
-    // const query = {
-    //   // give the query a unique name
-    //   name: `create-lessons-${Math.floor(Math.random() * 1000)}`,
-    //   text: `
-    //   DO $$
-    //     DECLARE lesson_id_var integer = 0;
-    //   BEGIN
-    //     INSERT INTO lessons (date, title, status)
-    //     VALUES ('2020-01-01', 'Custom', 1)
-    //     RETURNING id into lesson_id_var;
-        
-    //     INSERT INTO lesson_teachers (lesson_id, teacher_id)
-    //     VALUES (lesson_id_var, 1);
-    //   END $$;`
-    // };
-    // const dbResponse = await pgClient.query(query)
+    counter = 0;
+    let dbResponse;
+    const createdLessonIds = [];
+    for (let lessonDate of generatedLessons) {
+      if (!teacherIds.length) {
+        throw new ApiError(500, 'No teacherIds specified');
+      }
+      let teacherIdsToSql = 'VALUES ';
+      for (let teacherId of teacherIds) {
+        teacherIdsToSql += `(lesson_id_var, ${teacherId}),`
+      }
+      teacherIdsToSql = teacherIdsToSql.slice(0, teacherIdsToSql.length - 1);
+      let query = {
+        // give the query a unique name
+        name: `save-procedure-${counter++}`,
+        text: `
+        CREATE OR REPLACE FUNCTION create_lessons() 
+          RETURNS integer 
+          LANGUAGE plpgsql
+        AS $$
+          DECLARE lesson_id_var integer = 0;
+          BEGIN
+            INSERT INTO lessons (date, title, status)
+            VALUES ('${lessonDate}', '${title}', 0)
+            RETURNING id into lesson_id_var;
+            
+            INSERT INTO lesson_teachers (lesson_id, teacher_id)
+            ${teacherIdsToSql};
+
+            RETURN lesson_id_var;
+          END 
+        $$ ;
+        `
+      };
+      const savedProcedure = await pgClient.query(query);
+      query = {
+        name: `call-procedure-${counter}`,
+        text: `SELECT create_lessons() as "lesson_id";`,
+      }
+      dbResponse = await pgClient.query(query);
+      createdLessonIds.push(dbResponse.rows[0].lesson_id);
+    }
+    
+    return res.json(createdLessonIds);
     // const response = {
     //   text: dbResponse,
     // }
