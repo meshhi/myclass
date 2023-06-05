@@ -2,6 +2,7 @@ const { Router } = require("express");
 const pgClient = require("../db/db.js");
 const ApiError = require("../utils/apiError.js");
 const rootHandler = require("../utils/lessonsHandler/rootHandler.js");
+const sqlQueries = require("../utils/sqlQueries.js");
 
 const lessonsRouter = new Router();
 
@@ -58,25 +59,34 @@ const lessonsRouter = new Router();
  *               $ref: "#/components/schemas/ApiError"
  */
 lessonsRouter.get('/', async (req, res, next) => {
-  const {date, status, teacherIds, studentsCount, page, lessonsPerPage} = req.query;
-  const dateToSQL = rootHandler.dateToSQL(date);
-  console.log(dateToSQL);
-  const statusToSQL = rootHandler.statusToSQL(status);
-  console.log(statusToSQL);
-  const teacherIdsToSQL = rootHandler.teacherIdsToSQL(teacherIds);
-  console.log(teacherIdsToSQL);
-  const studentsCountToSQL = rootHandler.studentsCountToSQL(studentsCount);
-  console.log(studentsCountToSQL);
-  const offset = page * lessonsPerPage - lessonsPerPage;
-
-  const query = {
-    // give the query a unique name
-    name: 'get-lessons',
-    text: 'SELECT * FROM lessons',
+  try {
+    const {date, status, teacherIds, studentsCount, page, lessonsPerPage} = req.query;
+    const dateToSQL = rootHandler.dateToSQL(date);
+    console.log(dateToSQL);
+    const statusToSQL = rootHandler.statusToSQL(status);
+    console.log(statusToSQL);
+    const teacherIdsToSQL = rootHandler.teacherIdsToSQL(teacherIds);
+    console.log(teacherIdsToSQL);
+    const studentsCountToSQL = rootHandler.studentsCountToSQL(studentsCount);
+    console.log(studentsCountToSQL);
+    const offset = page * lessonsPerPage - lessonsPerPage;
+  
+    const query = {
+      // give the query a unique name
+      name: 'get-lessons',
+      text: `SELECT * FROM (${sqlQueries.lessons}) as "sub"
+      WHERE ${dateToSQL}
+      `,
+    }
+    console.log(query.text);
+  
+    const dbResponse = await pgClient.query(query)
+    console.log(dbResponse.rows);
+    res.send('OKKK')
+  } catch(e) {
+    res.send(e.message)
   }
 
-  const dbResponse = await pgClient.query(query)
-  res.send('OKKK')
 });
 
 lessonsRouter.post('/2', async (req, res, next) => {

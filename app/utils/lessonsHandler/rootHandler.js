@@ -1,7 +1,7 @@
 class RootHandler {
   dateToSQL(date) {
     let result = '';
-    const regex = /^[0-9]{2}-[0-9]{2}-[0-9]{4}$/g;
+    const regex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/g;
     if (!date) {
       return result;
     }
@@ -9,11 +9,11 @@ class RootHandler {
       const dateStart = date.split(',')[0];
       const dateEnd = date.split(',')[1];
       if (dateStart.match(regex) && dateEnd.match(regex)){
-        result += "date BETWEEN " + dateStart + ' AND ' + dateEnd;
+        result += "lesson_date BETWEEN '" + dateStart + "' AND '" + dateEnd + "'";
       }
     } else {
       if (date.match(regex)) {
-        result += "date = " + date;
+        result += "lesson_date = '" + date + "'";
       }
     }
     return result;
