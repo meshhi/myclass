@@ -1,7 +1,8 @@
 const { Router } = require("express");
 const pgClient = require("../db/db.js");
 const ApiError = require("../utils/apiError.js");
-const generateSqlRequest = require("../utils/lessonsHandler/generateSql.js");
+const generateSqlRequestGetLessons = require("../utils/getLessonsHandler/generateSql.js");
+const generateSqlRequestCreateLessons = require("../utils/createLessonsHandler/generateSql.js");
 const lessonsRouter = new Router();
 
 /**
@@ -59,7 +60,7 @@ const lessonsRouter = new Router();
 lessonsRouter.get('/', async (req, res, next) => {
   try {
     const {date, status, teacherIds, studentsCount, page = 1, lessonsPerPage = 5} = req.query;
-    const query = generateSqlRequest(date, status, teacherIds, studentsCount, page, lessonsPerPage);
+    const query = generateSqlRequestGetLessons(date, status, teacherIds, studentsCount, page, lessonsPerPage);
     console.log(query.text);
     const dbResponse = await pgClient.query(query)
     const response = {};
@@ -95,24 +96,102 @@ lessonsRouter.get('/', async (req, res, next) => {
     console.log(dbResponse.rows);
     res.json(response);
   } catch(e) {
-    res.status(400);
-    res.json({
-      error: e.message
-    });
+    next(new ApiError(400, e.message));
   }
 
 });
 
-lessonsRouter.post('/2', async (req, res, next) => {
+lessonsRouter.post('/lessons', async (req, res, next) => {
   try {
-    const {id} = req.body;
-    
-    const response = {
-      text: "success",
+    const {teacherIds, title, days, firstDate, lessonsCount, lastDate} = req.body;
+    let counter = 0;
+    const generatedLessons = [];
+    let lessonsCountCondition = false;
+
+    // lessonsCount case
+    if (lessonsCount && firstDate) {
+      lessonsCountCondition = true;
+      let currentDate = new Date(firstDate);
+      console.log(Number(currentDate))
+      let currentDay;
+
+      while(counter < 300) {
+        // проверка ограничения в год
+        if (Number(currentDate) - Number(new Date(firstDate)) > 31536000000) {
+          break;
+        }
+        currentDay = currentDate.getDay();
+        console.log(currentDate.toUTCString())
+        // создание занятия, если удовлетворяет условию по дням недели
+        if (days.includes(currentDay)) {
+          generatedLessons.push(currentDate.toUTCString());
+          counter++;
+        }
+        // проверка условия по количеству создаваемых занятий
+        if (generatedLessons.length === lessonsCount) {
+          break;
+        }
+        currentDate = new Date(Number(currentDate) + 86400000);
+      }
     }
-    if (!id) {
-      throw new ApiError(404, 'custom err');
+
+    // first-endDate case
+    if (firstDate && lastDate && !lessonsCountCondition) {
+      let currentDate = new Date(firstDate);
+      let lastDateTemp = new Date(lastDate);
+      let currentDay;
+
+      while(counter < 300) {
+        // проверка выхода за предельную дату
+        if (Number(currentDate) > Number(lastDateTemp)) {
+          break;
+        }
+        // проверка выхода за границу года
+        if (Number(currentDate) - Number(new Date(firstDate)) > 31536000000) {
+          break;
+        }
+        currentDay = currentDate.getDay();
+        console.log(currentDate.toUTCString());
+        // проверка условия по дням недели
+        if (days.includes(currentDay)) {
+          generatedLessons.push(currentDate.toUTCString());
+          counter++;
+        }
+        // проверка на количество созданных занятий
+        if (generatedLessons.length === lessonsCount) {
+          break;
+        }
+        currentDate = new Date(Number(currentDate) + 86400000);
+      }
     }
+
+    console.log(generatedLessons);
+
+    // const query = {
+    //   // give the query a unique name
+    //   name: `create-lessons-${Math.floor(Math.random() * 1000)}`,
+    //   text: `
+    //   DO $$
+    //     DECLARE lesson_id_var integer = 0;
+    //   BEGIN
+    //     INSERT INTO lessons (date, title, status)
+    //     VALUES ('2020-01-01', 'Custom', 1)
+    //     RETURNING id into lesson_id_var;
+        
+    //     INSERT INTO lesson_teachers (lesson_id, teacher_id)
+    //     VALUES (lesson_id_var, 1);
+    //   END $$;`
+    // };
+    // const dbResponse = await pgClient.query(query)
+    // const response = {
+    //   text: dbResponse,
+    // }
+
+    response = {
+      generatedLessonsCount: generatedLessons.length,
+      generatedLessons,
+    };
+
     res.json(response);
   } catch(err) {
     next(err);
