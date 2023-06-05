@@ -5,6 +5,9 @@ class RootHandler {
     if (!date) {
       return result;
     }
+    if (date[date.length - 1] === ',') {
+      date = date.slice(0, date.length - 1);
+    }
     if (date.includes(',')) {
       const dateStart = date.split(',')[0];
       const dateEnd = date.split(',')[1];
@@ -24,7 +27,7 @@ class RootHandler {
     if (!status) {
       return result;
     } else {
-      result += "status = " + Boolean(status);
+      result += "lesson_status = " + status;
     }
     return result;
   }
@@ -35,7 +38,19 @@ class RootHandler {
     if (!teacherIds) {
       return result;
     } else {
-      teacherIds.match(regex) ? result += `teacherId IN (${teacherIds})` : null
+      if (teacherIds.match(regex)) {
+        if (teacherIds[teacherIds.length - 1] === ',') {
+          teacherIds = teacherIds.slice(0, teacherIds.length - 1);
+        }
+        const teacherIdsToArray = teacherIds.split(',');
+        console.log(teacherIdsToArray)
+        teacherIdsToArray.forEach((id, index) => {
+          result += `${id} = any("teachers_id")`
+          if (index !== teacherIdsToArray.length - 1) {
+            result += " OR "
+          }
+        });
+      }
     }
     return result;
   }
@@ -47,11 +62,14 @@ class RootHandler {
       return result;
     } else {
       if (studentsCount.match(regex)) {
+        if (studentsCount[studentsCount.length - 1] === ',') {
+          studentsCount = studentsCount.slice(0, studentsCount.length - 1);
+        }
         const studentsCountList = studentsCount.split(',');
         if (studentsCountList.length === 1) {
-          result += "studentsCount = " + studentsCountList[0];
+          result += "students_count = " + studentsCountList[0];
         } else if (studentsCountList.length === 2) {
-          result += `studentsCount >= ${studentsCountList[0]} and studentsCount <= ${studentsCountList[1]}`;
+          result += `students_count >= ${studentsCountList[0]} and students_count <= ${studentsCountList[1]}`;
         } else {
           return result;
         }

@@ -60,7 +60,7 @@ const lessonsRouter = new Router();
  */
 lessonsRouter.get('/', async (req, res, next) => {
   try {
-    const {date, status, teacherIds, studentsCount, page, lessonsPerPage} = req.query;
+    const {date, status, teacherIds, studentsCount, page = 1, lessonsPerPage = 5} = req.query;
     const dateToSQL = rootHandler.dateToSQL(date);
     console.log(dateToSQL);
     const statusToSQL = rootHandler.statusToSQL(status);
@@ -70,16 +70,27 @@ lessonsRouter.get('/', async (req, res, next) => {
     const studentsCountToSQL = rootHandler.studentsCountToSQL(studentsCount);
     console.log(studentsCountToSQL);
     const offset = page * lessonsPerPage - lessonsPerPage;
-  
+    console.log(teacherIdsToSQL);
     const query = {
       // give the query a unique name
       name: 'get-lessons',
       text: `SELECT * FROM (${sqlQueries.lessons}) as "sub"
-      WHERE ${dateToSQL}
+      WHERE 
+      ${dateToSQL}
+      AND 
+      ${statusToSQL}
+      AND
+      ${studentsCountToSQL}
+      AND
+      (3 = any("teachers_id")
+      OR
+      4 = any("teachers_id"))
+      OFFSET ${offset}
+      LIMIT ${lessonsPerPage}
       `,
     }
     console.log(query.text);
-  
+    // 
     const dbResponse = await pgClient.query(query)
     console.log(dbResponse.rows);
     res.send('OKKK')
