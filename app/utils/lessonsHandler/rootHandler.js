@@ -42,12 +42,14 @@ class RootHandler {
         if (teacherIds[teacherIds.length - 1] === ',') {
           teacherIds = teacherIds.slice(0, teacherIds.length - 1);
         }
+        result += '(';
         const teacherIdsToArray = teacherIds.split(',');
-        console.log(teacherIdsToArray)
         teacherIdsToArray.forEach((id, index) => {
           result += `${id} = any("teachers_id")`
           if (index !== teacherIdsToArray.length - 1) {
-            result += " OR "
+            result += " OR ";
+          } else {
+            result += ")";
           }
         });
       }

@@ -1,9 +1,7 @@
 const { Router } = require("express");
 const pgClient = require("../db/db.js");
 const ApiError = require("../utils/apiError.js");
-const rootHandler = require("../utils/lessonsHandler/rootHandler.js");
-const sqlQueries = require("../utils/sqlQueries.js");
-
+const generateSqlRequest = require("../utils/lessonsHandler/generateSql.js");
 const lessonsRouter = new Router();
 
 /**
@@ -61,41 +59,46 @@ const lessonsRouter = new Router();
 lessonsRouter.get('/', async (req, res, next) => {
   try {
     const {date, status, teacherIds, studentsCount, page = 1, lessonsPerPage = 5} = req.query;
-    const dateToSQL = rootHandler.dateToSQL(date);
-    console.log(dateToSQL);
-    const statusToSQL = rootHandler.statusToSQL(status);
-    console.log(statusToSQL);
-    const teacherIdsToSQL = rootHandler.teacherIdsToSQL(teacherIds);
-    console.log(teacherIdsToSQL);
-    const studentsCountToSQL = rootHandler.studentsCountToSQL(studentsCount);
-    console.log(studentsCountToSQL);
-    const offset = page * lessonsPerPage - lessonsPerPage;
-    console.log(teacherIdsToSQL);
-    const query = {
-      // give the query a unique name
-      name: 'get-lessons',
-      text: `SELECT * FROM (${sqlQueries.lessons}) as "sub"
-      WHERE 
-      ${dateToSQL}
-      AND 
-      ${statusToSQL}
-      AND
-      ${studentsCountToSQL}
-      AND
-      (3 = any("teachers_id")
-      OR
-      4 = any("teachers_id"))
-      OFFSET ${offset}
-      LIMIT ${lessonsPerPage}
-      `,
-    }
+    const query = generateSqlRequest(date, status, teacherIds, studentsCount, page, lessonsPerPage);
     console.log(query.text);
-    // 
     const dbResponse = await pgClient.query(query)
+    const response = {};
+    if (dbResponse.rows?.length) {
+      dbResponse.rows.forEach(lesson => {
+        const visits = lesson.students_arr.reduce((acc, student) => {
+          if(student.student_visited) {
+            acc++;
+          }
+          return acc;
+        }, 0);
+        lesson.visitCount = visits;
+        delete lesson.teachers_id;
+        delete lesson.students_count;
+      });
+      response.lessons = dbResponse.rows.map(lesson => ({
+        id: lesson.lesson_id,
+        date: lesson.lesson_date,
+        title: lesson.lesson_title,
+        status: lesson.lesson_status,
+        visitCount: lesson.visitCount,
+        students: lesson.students_arr.map(student => ({
+          id: student.student_id,
+          name: student.student_name,
+          visit: Boolean(student.student_visited)
+        })),
+        teachers: lesson.teachers_arr.map(teacher => ({
+          id: teacher.teacher_id,
+          name: teacher.teacher_name,
+        })),
+      }));
+    }
     console.log(dbResponse.rows);
-    res.send('OKKK')
+    res.json(response);
   } catch(e) {
-    res.send(e.message)
+    res.status(400);
+    res.json({
+      error: e.message
+    });
   }
 
 });
