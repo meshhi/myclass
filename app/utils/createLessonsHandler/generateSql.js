@@ -1,4 +1,4 @@
-const rootHandler = require("./rootHandler.js");
+const rootHandler = require("../getLessonsHandler/rootHandler.js");
 const sqlQueries = require("../sqlQueries.js");
 
 module.exports = function(date, status, teacherIds, studentsCount, page, lessonsPerPage) {

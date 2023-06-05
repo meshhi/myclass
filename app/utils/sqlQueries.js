@@ -12,7 +12,8 @@ const sqlQueries = {
   inner join teachers t on (lt.teacher_id = t.id)
   inner join lesson_students ls on (l.id = ls.lesson_id)
   inner join students s on (ls.student_id = s.id)
-  group by l.id, l."date", l.title, l.status`
+  group by l.id, l."date", l.title, l.status`,
+  createLessons: `select l.id as "lesson`
 }
 
 module.exports = sqlQueries;
