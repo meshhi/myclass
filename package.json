@@ -8,7 +8,7 @@
     "start-dev": "nodemon ./app/app.js",
     "dump-db": "node ./app/utils/dumpDB.js",
     "start-pg-container": "sh initdb.sh",
-    "start": "node .app/app.js"
+    "start": "node ./app/app.js"
   },
   "keywords": [],
   "author": "",
