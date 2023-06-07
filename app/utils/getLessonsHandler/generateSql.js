@@ -1,11 +1,12 @@
 const SqlHandler = require("./SqlHandler.js");
 const sqlQueries = require("../sqlBaseQueries.js");
+const { v4 } = require("uuid");
 
-module.exports = function(date, status, teacherIds, studentsCount, page, lessonsPerPage) {
-  const dateToSQL = SqlHandler.dateToSQL(date);
-  const statusToSQL = SqlHandler.statusToSQL(status);
-  const teacherIdsToSQL = SqlHandler.teacherIdsToSQL(teacherIds);
-  const studentsCountToSQL = SqlHandler.studentsCountToSQL(studentsCount);
+module.exports = function(validator, date, status, teacherIds, studentsCount, page, lessonsPerPage) {
+  const dateToSQL = SqlHandler.dateToSQL(date, validator);
+  const statusToSQL = SqlHandler.statusToSQL(status, validator);
+  const teacherIdsToSQL = SqlHandler.teacherIdsToSQL(teacherIds, validator);
+  const studentsCountToSQL = SqlHandler.studentsCountToSQL(studentsCount, validator);
   const offset = page * lessonsPerPage - lessonsPerPage;
   let filterString = '';
   const filterArray = [];
@@ -21,7 +22,7 @@ module.exports = function(date, status, teacherIds, studentsCount, page, lessons
   };
   const query = {
     // give the query a unique name
-    name: `get-lessons-${Math.floor(Math.random() * 1000)}`,
+    name: `get-lessons-${v4()}`,
     text: `SELECT * FROM (${sqlQueries.lessons}) as "sub"`
   };
   filterString.trim();
@@ -32,6 +33,7 @@ module.exports = function(date, status, teacherIds, studentsCount, page, lessons
     OFFSET ${offset}
     LIMIT ${lessonsPerPage}
   `;
+  console.log(query.text);
 
   return query;
 };

@@ -1,5 +1,5 @@
 class SqlHandler {
-  dateToSQL(date) {
+  dateToSQL(date, validator) {
     let result = '';
     const regex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/g;
     if (!date) {
@@ -14,68 +14,70 @@ class SqlHandler {
       if (dateStart.match(regex) && dateEnd.match(regex)){
         result += "lesson_date BETWEEN '" + dateStart + "' AND '" + dateEnd + "'";
       }
+    } else if (date.match(regex)) {
+      result += "lesson_date = '" + date + "'";
     } else {
-      if (date.match(regex)) {
-        result += "lesson_date = '" + date + "'";
-      }
+      validator.date = false;
     }
     return result;
   }
 
-  statusToSQL(status) {
+  statusToSQL(status, validator) {
     let result = '';
     if (!status) {
       return result;
-    } else {
+    } else if ((status == 1) || (status == 0)) {
       result += "lesson_status = " + status;
+    } else {
+      validator.status = false;
     }
     return result;
   }
 
-  teacherIdsToSQL(teacherIds) {
+  teacherIdsToSQL(teacherIds, validator) {
     let result = '';
     const regex = /^([0-9],?)+$/g;
     if (!teacherIds) {
       return result;
-    } else {
-      if (teacherIds.match(regex)) {
-        if (teacherIds[teacherIds.length - 1] === ',') {
-          teacherIds = teacherIds.slice(0, teacherIds.length - 1);
-        }
-        result += '(';
-        const teacherIdsToArray = teacherIds.split(',');
-        teacherIdsToArray.forEach((id, index) => {
-          result += `${id} = any("teachers_id")`
-          if (index !== teacherIdsToArray.length - 1) {
-            result += " OR ";
-          } else {
-            result += ")";
-          }
-        });
+    } else if (teacherIds.match(regex)){
+      if (teacherIds[teacherIds.length - 1] === ',') {
+        teacherIds = teacherIds.slice(0, teacherIds.length - 1);
       }
+      result += '(';
+      const teacherIdsToArray = teacherIds.split(',');
+      teacherIdsToArray.forEach((id, index) => {
+        result += `${id} = any("teachers_id")`
+        if (index !== teacherIdsToArray.length - 1) {
+          result += " OR ";
+        } else {
+          result += ")";
+        }
+      });
+    } else {
+      validator.teacherIds = false;
     }
     return result;
   }
 
-  studentsCountToSQL(studentsCount) {
+  studentsCountToSQL(studentsCount, validator) {
     let result = '';
     const regex = /^([0-9],?){1,2}$/g;
     if (!studentsCount) {
       return result;
+    } else if (studentsCount.match(regex)) {
+      if (studentsCount[studentsCount.length - 1] === ',') {
+        studentsCount = studentsCount.slice(0, studentsCount.length - 1);
+      }
+      const studentsCountList = studentsCount.split(',');
+      if (studentsCountList.length === 1) {
+        result += "students_count = " + studentsCountList[0];
+      } else if (studentsCountList.length === 2) {
+        result += `students_count >= ${studentsCountList[0]} and students_count <= ${studentsCountList[1]}`;
+      } else {
+        return result;
+      }
     } else {
-      if (studentsCount.match(regex)) {
-        if (studentsCount[studentsCount.length - 1] === ',') {
-          studentsCount = studentsCount.slice(0, studentsCount.length - 1);
-        }
-        const studentsCountList = studentsCount.split(',');
-        if (studentsCountList.length === 1) {
-          result += "students_count = " + studentsCountList[0];
-        } else if (studentsCountList.length === 2) {
-          result += `students_count >= ${studentsCountList[0]} and students_count <= ${studentsCountList[1]}`;
-        } else {
-          return result;
-        }
-      };
+      validator.studentsCount = false;
     }
     return result;
   }

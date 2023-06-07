@@ -2,9 +2,9 @@ const { Router } = require("express");
 const pgClient = require("../db/db.js");
 const ApiError = require("../utils/apiError.js");
 const generateSqlRequestGetLessons = require("../utils/getLessonsHandler/generateSql.js");
-const generateSqlRequestCreateLessons = require("../utils/createLessonsHandler/generateSql.js");
 const lessonsRouter = new Router();
-
+const generateLessonsDate = require("../utils/createLessonsHandler/generateLessonsDates.js");
+const writeLessonsToDb = require("../utils/createLessonsHandler/writeLessonsToDb.js");
 /**
  * @openapi
  * /:
@@ -66,8 +66,25 @@ const lessonsRouter = new Router();
 lessonsRouter.get('/', async (req, res, next) => {
   try {
     const {date, status, teacherIds, studentsCount, page = 1, lessonsPerPage = 5} = req.query;
-    const query = generateSqlRequestGetLessons(date, status, teacherIds, studentsCount, page, lessonsPerPage);
-    console.log(query.text);
+    const validator = {
+      date: true,
+      status: true,
+      teacherIds: true,
+      studentsCount: true
+    };
+    const query = generateSqlRequestGetLessons(validator, date, status, teacherIds, studentsCount, page, lessonsPerPage);
+    if (!validator.date) {
+      throw new Error('Invalid date');
+    }
+    if (!validator.status) {
+      throw new Error('Invalid status');
+    }
+    if (!validator.teacherIds) {
+      throw new Error('Invalid teacherIds');
+    }
+    if (!validator.studentsCount) {
+      throw new Error('Invalid studentsCount');
+    }
     const dbResponse = await pgClient.query(query)
     const response = {};
     if (dbResponse.rows?.length) {
@@ -170,106 +187,9 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
     if (!days) {
       throw new ApiError(400, 'Missing required parameter days');
     }
-    let counter = 0;
-    const generatedLessons = [];
-    let lessonsCountCondition = false;
-
-    // lessonsCount case
-    if (lessonsCount && firstDate) {
-      lessonsCountCondition = true;
-      let currentDate = new Date(firstDate);
-      let currentDay;
-
-      while(counter < 300) {
-        // проверка ограничения в год
-        if (Number(currentDate) - Number(new Date(firstDate)) > 31536000000) {
-          break;
-        }
-        currentDay = currentDate.getDay();
-        // создание занятия, если удовлетворяет условию по дням недели
-        if (days.includes(currentDay)) {
-          generatedLessons.push(currentDate.toDateString());
-          counter++;
-        }
-        // проверка условия по количеству создаваемых занятий
-        if (generatedLessons.length === lessonsCount) {
-          break;
-        }
-        currentDate = new Date(Number(currentDate) + 86400000);
-      }
-    }
-
-    // first-endDate case
-    if (firstDate && lastDate && !lessonsCountCondition) {
-      let currentDate = new Date(firstDate);
-      let lastDateTemp = new Date(lastDate);
-      let currentDay;
-
-      while(counter < 300) {
-        // проверка выхода за предельную дату
-        if (Number(currentDate) > Number(lastDateTemp)) {
-          break;
-        }
-        // проверка выхода за границу года
-        if (Number(currentDate) - Number(new Date(firstDate)) > 31536000000) {
-          break;
-        }
-        currentDay = currentDate.getDay();
-        // проверка условия по дням недели
-        if (days.includes(currentDay)) {
-          generatedLessons.push(currentDate.toDateString());
-          counter++;
-        }
-        // проверка на количество созданных занятий
-        if (generatedLessons.length === lessonsCount) {
-          break;
-        }
-        currentDate = new Date(Number(currentDate) + 86400000);
-      }
-    }
-    counter = 0;
-    let dbResponse;
-    const createdLessonIds = [];
-    for (let lessonDate of generatedLessons) {
-      if (!teacherIds.length) {
-        throw new ApiError(500, 'No teacherIds specified');
-      }
-      let teacherIdsToSql = 'VALUES ';
-      for (let teacherId of teacherIds) {
-        teacherIdsToSql += `(lesson_id_var, ${teacherId}),`
-      }
-      teacherIdsToSql = teacherIdsToSql.slice(0, teacherIdsToSql.length - 1);
-      let query = {
-        // give the query a unique name
-        name: `save-procedure-${counter++}`,
-        text: `
-        CREATE OR REPLACE FUNCTION create_lessons() 
-          RETURNS integer 
-          LANGUAGE plpgsql
-        AS $$
-          DECLARE lesson_id_var integer = 0;
-          BEGIN
-            INSERT INTO lessons (date, title, status)
-            VALUES ('${lessonDate}', '${title}', 0)
-            RETURNING id into lesson_id_var;
-            
-            INSERT INTO lesson_teachers (lesson_id, teacher_id)
-            ${teacherIdsToSql};
-
-            RETURN lesson_id_var;
-          END 
-        $$ ;
-        `
-      };
-      const savedProcedure = await pgClient.query(query);
-      query = {
-        name: `call-procedure-${counter}`,
-        text: `SELECT create_lessons() as "lesson_id";`,
-      }
-      dbResponse = await pgClient.query(query);
-      createdLessonIds.push(dbResponse.rows[0].lesson_id);
-    }
-
+    const generatedLessons = generateLessonsDate(lessonsCount, firstDate, lastDate, days);
+    const createdLessonIds = await writeLessonsToDb(generatedLessons, teacherIds, title);
+    
     return res.json(createdLessonIds);
   } catch(err) {
     next(new ApiError(400, err.message));

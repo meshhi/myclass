@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha --timeout 15000 ./app/test/*.js",
+    "test-cover": "nyc npm run test",
     "start-dev": "nodemon ./app/app.js",
     "dump-db": "node ./app/utils/dumpDB.js",
     "start-pg-container": "sh initdb.sh",
@@ -20,6 +21,14 @@
     "pg": "^8.11.0",
     "pg-hstore": "^2.3.4",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^4.6.3"
+    "swagger-ui-express": "^4.6.3",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "nodemon": "^2.0.22",
+    "nyc": "^15.1.0",
+    "supertest": "^6.3.3"
   }
 }
