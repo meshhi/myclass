@@ -1,0 +1,10 @@
+{
+    "all": true,
+    "include": ["app/routes"],
+    "exclude": ["app/test"],
+    "output": "reports",
+    "reporter" : [
+        "html",
+        "text"
+    ]
+}

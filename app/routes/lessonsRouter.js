@@ -238,17 +238,17 @@ lessonsRouter.post('/lessons', async (req, res, next) => {
       }
 
       regex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/g;
-      if (!firstDate.match(regex)) {
+      if (!String(firstDate).match(regex)) {
         throw new ApiError(400, 'Invalid first date');
       }
       if (lastDate) {
-        if (!lastDate.match(regex)) {
+        if (!String(lastDate).match(regex)) {
           throw new ApiError(400, 'Invalid last date');
         }
       }
       regex = /^([0-9])+$/
       if (lessonsCount) {
-        if (!lessonsCount.match(regex)) {
+        if (!String(lessonsCount).match(regex)) {
           throw new ApiError(400, 'Invalid lessonsCount');
         }
       }
