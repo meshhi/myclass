@@ -105,17 +105,36 @@ lessonsRouter.get('/', async (req, res, next) => {
         title: lesson.lesson_title,
         status: lesson.lesson_status,
         visitCount: lesson.visitCount,
-        students: lesson.students_arr.map(student => ({
-          id: student.student_id,
-          name: student.student_name,
-          visit: Boolean(student.student_visited)
-        })),
-        teachers: lesson.teachers_arr.map(teacher => ({
-          id: teacher.teacher_id,
-          name: teacher.teacher_name,
-        })),
+        students: lesson.students_arr.map(student => {
+          if (student.student_id) {
+            return 
+            ({
+              id: student.student_id,
+              name: student.student_name,
+              visit: Boolean(student.student_visited)
+            })
+          }
+        }),
+        teachers: lesson.teachers_arr.map(teacher => {
+          if (teacher.teacher_id) {
+            return {
+              id: teacher.teacher_id,
+              name: teacher.teacher_name,
+            }
+          }
+        }),
       }));
     }
+    response.lessons.forEach(lesson => {
+      if (!lesson.students[0]) {
+        lesson.students = [];
+      }
+    });
+    response.lessons.forEach(lesson => {
+      if (!lesson.teachers[0]) {
+        lesson.teachers = [];
+      }
+    });
     res.json(response.lessons);
   } catch(e) {
     next(new ApiError(400, e.message));
@@ -177,16 +196,64 @@ lessonsRouter.get('/', async (req, res, next) => {
  */
 lessonsRouter.post('/lessons', async (req, res, next) => {
   try {
-    const {teacherIds, title, days, firstDate = new Date(), lessonsCount = 300, lastDate = new Date(Number(new Date()) + 86400000)} = req.body;
-    if (!teacherIds) {
-      throw new ApiError(400, 'Missing required parameter teacherIds');
+    const {teacherIds, title, days, firstDate, lessonsCount, lastDate} = req.body;
+    const validate = (teacherIds, title, days, firstDate, lessonsCount, lastDate) => {
+      if (!teacherIds) {
+        throw new ApiError(400, 'Missing required parameter teacherIds');
+      }
+      if (!title) {
+        throw new ApiError(400, 'Missing required parameter title');
+      }
+      if (!days) {
+        throw new ApiError(400, 'Missing required parameter days');
+      }      
+      if (!firstDate) {
+        throw new ApiError(400, 'Missing required parameter firstDate');
+      }
+      if (!days) {
+        throw new ApiError(400, 'Missing required parameter days');
+      }
+      if (!(lessonsCount || lastDate)) {
+        throw new ApiError(400, 'Missing required parameters lessonsCount or lastDate');
+      }
+      let regex = /^\[([0-9] ,?)+\]$/g;
+      if (Array.isArray(teacherIds)) {
+        teacherIds.forEach(id => {
+          if (typeof id !== 'number') {
+            throw new ApiError(400, 'Invalid teacherIds');
+          };
+        });
+      } else {
+        throw new ApiError(400, 'Invalid teacherIds');
+      }
+
+      if (Array.isArray(days)) {
+        days.forEach(id => {
+          if (typeof id !== 'number') {
+            throw new ApiError(400, 'Invalid days');
+          };
+        });
+      } else {
+        throw new ApiError(400, 'Invalid days');
+      }
+
+      regex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/g;
+      if (!firstDate.match(regex)) {
+        throw new ApiError(400, 'Invalid first date');
+      }
+      if (lastDate) {
+        if (!lastDate.match(regex)) {
+          throw new ApiError(400, 'Invalid last date');
+        }
+      }
+      regex = /^([0-9])+$/
+      if (lessonsCount) {
+        if (!lessonsCount.match(regex)) {
+          throw new ApiError(400, 'Invalid lessonsCount');
+        }
+      }
     }
-    if (!title) {
-      throw new ApiError(400, 'Missing required parameter title');
-    }
-    if (!days) {
-      throw new ApiError(400, 'Missing required parameter days');
-    }
+    validate(teacherIds, title, days, firstDate, lessonsCount, lastDate);
     const generatedLessons = generateLessonsDate(lessonsCount, firstDate, lastDate, days);
     const createdLessonIds = await writeLessonsToDb(generatedLessons, teacherIds, title);
     
